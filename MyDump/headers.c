@@ -99,7 +99,7 @@ typedef struct dns_packet //报文head+data
 {
     u_short id;		//每一个占2个字节，共12个字节
     u_short flags;	//标志第一个为0代表查询报文
-    u_short ques;	
+    u_short ques;
     u_short answer;	
     u_short author;	
     u_short addition;

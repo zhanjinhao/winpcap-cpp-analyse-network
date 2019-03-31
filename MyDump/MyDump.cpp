@@ -6,8 +6,6 @@
 #include "headers.c"
 #define DNSPORT 53
 
-
-
 //输出基本信息
 void myPrintBaseInfo(const struct pcap_pkthdr *header)
 {
@@ -18,7 +16,7 @@ void myPrintBaseInfo(const struct pcap_pkthdr *header)
 	local_tv_sec = header->ts.tv_sec;
 	ltime=localtime(&local_tv_sec);
 	strftime(timestr, sizeof timestr, "%H:%M:%S", ltime);
-	printf("\n\n\n\n监听到Mac帧的时间：%s   MAC帧长度:%d Byte(s)\n", timestr, header->len * 4);  /* 以四字节为单位 */
+	printf("\n\n\n\n监听到Mac帧的时间：%s.%.6d   MAC帧长度:%d Byte(s)\n", timestr, header->ts.tv_usec, header->len);  /* 以四字节为单位 */
 }
 
 //输出硬件地址
@@ -250,11 +248,11 @@ void handleTCP(tcp_header *th)
 	tcp_hlen_bl_flags=ntohs(th->hlen_bl_flags);	//数据偏移4+保留6+控制位6
 	tcp_hlen=(tcp_hlen_bl_flags >> 12)*4;		//以4字节为单位
 	tcp_bl=(tcp_hlen_bl_flags & 0x0fc0);		//保留
-	tcp_flags_urg=(tcp_hlen_bl_flags & 0x0020);	//紧急1有效                                                    ----- 
-	tcp_flags_ack=(tcp_hlen_bl_flags & 0x0010);	//确认=1时，确认号有效
-	tcp_flags_psh=(tcp_hlen_bl_flags & 0x0008);	//推送1有效，可以不用填满缓存就发报
-	tcp_flags_rst=(tcp_hlen_bl_flags & 0x0004);	//复位1有效，重新建立连接
-	tcp_flags_syn=(tcp_hlen_bl_flags & 0x0002);	//同步syn=1,ack=0时，表明这是一个连接请求报文；syn=1,ack=1,接受连接请求
+	tcp_flags_urg=((tcp_hlen_bl_flags >> 5) & 0x0001);	//紧急1有效                                                    ----- 
+	tcp_flags_ack=((tcp_hlen_bl_flags >> 4) & 0x0001);	//确认=1时，确认号有效
+	tcp_flags_psh=((tcp_hlen_bl_flags >> 3) & 0x0001);	//推送1有效，可以不用填满缓存就发报
+	tcp_flags_rst=((tcp_hlen_bl_flags >> 2) & 0x0001);	//复位1有效，重新建立连接
+	tcp_flags_syn=((tcp_hlen_bl_flags >> 1) & 0x0001);	//同步syn=1,ack=0时，表明这是一个连接请求报文；syn=1,ack=1,接受连接请求
 	tcp_flags_fin=(tcp_hlen_bl_flags & 0x0001);	//释放连接=1时，表示数据报
 	tcp_window_size=ntohs(th->window_size);		//窗口（发送方自己的接收窗口）
 	tcp_checksum=ntohs(th->checksum);			//检验和（首部+数据）
@@ -282,7 +280,8 @@ void handleTCP(tcp_header *th)
 	if (tcp_flags_fin == 1)
 		printf("标志：FIN\n");
 	printf("窗口：%d\t\t",tcp_window_size);
-	printf("检验和：%d\n",tcp_checksum);
+	if (tcp_flags_ack == 1)
+		printf("检验和：%d\n",tcp_checksum);
 	printf("紧急指针：%d\t\t",tcp_urg);//URG=1时才有用，窗口大小为0也能发送
 	if(tcp_hlen == 20)//数据偏移(TCP首部长度)>20时才有
 		printf("首部长度为20字节，没有填充字段。\n");
@@ -387,12 +386,12 @@ int main()
 	
 	
 	
-	printf("分析IP数据报输入：\t\t\t1\n");
-	printf("分析ARP数据报输入：\t\t\t2\n");
-	printf("分析TCP数据报输入：\t\t\t3\n");
-	printf("分析UDP数据报输入：\t\t\t4\n");
-	printf("分析ICMP数据报输入：\t\t\t5\n");
-	printf("分析MAC、IP、ARP、TCP、UDP、IMCP输入\t6\n");
+	printf("1：\t分析IP数据报\n");
+	printf("2：\t分析ARP数据报\n");
+	printf("3：\t分析TCP数据报\n");
+	printf("4：\t分析UDP数据报\n");
+	printf("5：\t分析ICMP数据报\n");
+	printf("6：\t分析MAC、IP、ARP、TCP、UDP、IMCP\n");
 
 	printf("输入您想分析协议类型：");
 	scanf("%d", &handType);
